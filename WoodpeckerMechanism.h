@@ -1,7 +1,7 @@
 #ifndef __WOODPECKER_MECHANISM_H__
 #define __WOODPECKER_MECHANISM_H__
 
-#include "../MAX14870Motors/MAX14870Motors.cpp"
+#include <MAX14870Motors.h>
 
 #define STATE_INACTIVE                  0
 #define STATE_SOL_ACTIVE                1
@@ -10,9 +10,9 @@
 #define STATE_MOVING_MOTOR_BACKWARD     5
 #define STATE_MOVE_MOTOR                6
 
-class Woodpecker {
+class WoodpeckerMechanism {
     public:
-        Woodpecker(uint8_t sol, MAX14870Motors * m, uint16_t m_num, double min_on, double max_on, double between_time);
+        WoodpeckerMechanism(uint8_t sol, MAX14870Motors * m, uint16_t m_num, double min_on, double max_on, double between_time);
 
         void setMotorSpeeds(int f, int b);
         void update();
@@ -50,7 +50,7 @@ class Woodpecker {
         bool PRINT_MECHANISM_DEBUG = true;
 };
 
-Woodpecker::Woodpecker(uint8_t sol, MAX14870Motors * m, uint16_t m_num, double min_on, double max_on, double between_time) {
+WoodpeckerMechanism::WoodpeckerMechanism(uint8_t sol, MAX14870Motors * m, uint16_t m_num, double min_on, double max_on, double between_time) {
     mot_num = m_num;
     sol_pin = sol;
     motors = m;
@@ -59,12 +59,12 @@ Woodpecker::Woodpecker(uint8_t sol, MAX14870Motors * m, uint16_t m_num, double m
     sol_min_time_between_strikes = between_time;
 }
 
-void Woodpecker::setMotorSpeeds(int f, int b) {
+void WoodpeckerMechanism::setMotorSpeeds(int f, int b) {
     forward_speed = f;
     backward_speed = b;
 }
 
-void Woodpecker::queueStrike(double vel) {
+void WoodpeckerMechanism::queueStrike(double vel) {
     vel = (vel * (sol_max_on_time - sol_min_on_time)) + sol_min_on_time;
     if (vel > sol_max_on_time) {
         dprint(PRINT_MECHANISM_DEBUG, "WARNING - velocity for queueStrike is too high, setting to max_on_time:");
@@ -81,7 +81,7 @@ void Woodpecker::queueStrike(double vel) {
 }
 
 // TODO - overload to call queue rotate as well
-void Woodpecker::rotate(int len) {
+void WoodpeckerMechanism::rotate(int len) {
     // this is the basic function which will cause the motor to rotate the wood disk
     forward_remaining = (int)((float)len * 0.7);
     backward_remaining = (int)((float)len * 0.3);
@@ -92,12 +92,12 @@ void Woodpecker::rotate(int len) {
     state = STATE_MOVE_MOTOR;
 }
 
-bool Woodpecker::strike(double vel) {
+bool WoodpeckerMechanism::strike(double vel) {
     queueStrike(vel);
     return strike();
 }
 
-bool Woodpecker::strike() {
+bool WoodpeckerMechanism::strike() {
     // by changing the state to STATE_SOL_ACTIVE, the update loop will handle the
     // solenoid strike given the current class values
     update();
@@ -111,12 +111,14 @@ bool Woodpecker::strike() {
     }
 }
 
-void Woodpecker::update() {
+void WoodpeckerMechanism::update() {
+
     switch (state) {
+
         case STATE_INACTIVE:
-            // dprint(PRINT_MECHANISM_DEBUG, ".");
             digitalWrite(sol_pin, LOW);
             break;
+
         case STATE_SOL_ACTIVATE:
             if (last_action > sol_min_time_between_strikes) {
                 digitalWrite(sol_pin, HIGH);

@@ -26,14 +26,17 @@ class BellMechanism {
       void setPrint(bool p){PRINT_MECHANISM_DEBUG = p;};
 
     private:
-      uint8_t dampener_delay = 10;// how long to let the dampener be released for?
+      uint8_t dampener_delay = 10;// how long to let the dampener be released for before the striking solenoid acts:
       double velocity = 1.0;      // this is really the length of time
       uint32_t note_length = 30;  // how long to leave damper disenguaged after act strikes
       uint8_t state = BELL_INACTIVE; // is it
       uint8_t on_time = 30;
       double freq; // what is the frequency of this mechanism
+
       uint8_t act_pin;
+
       uint8_t damp_pin;
+
       elapsedMillis last_action;
       bool PRINT_MECHANISM_DEBUG = false;
 };
@@ -62,52 +65,43 @@ void BellMechanism::strike() {
 void BellMechanism::update() {
   switch (state) {
     case BELL_INACTIVE:
-      // if it has been long enough since the last bell strike and the bell it not currently active
+        // if it has been long enough since the last bell strike and the bell it not currently active
         break;
     case BELL_REMOVE_DAMPER:
-        Serial.println("removing bell dampener");
-        // turn on the dampener
-        digitalWrite(damp_pin, HIGH);
-        // reset the last bell activity timer
-        last_action = 0;
-        // change bell state to reflect status of dampener
-        state = BELL_DAMPENER_UP;
+        dprintln(PRINT_MECHANISM_DEBUG, "removing bell dampener");
+        digitalWrite(damp_pin, HIGH); // turn on the dampener
+        last_action = 0; // reset the last bell activity timer
+        state = BELL_DAMPENER_UP; // change bell state to reflect status of dampener
         break;
     case BELL_DAMPENER_UP:
       // if the dampener has been up for long enough then strike the solenoid
       if (last_action > dampener_delay) {
-        Serial.println("striking the bell");
+        dprintln(PRINT_MECHANISM_DEBUG, "striking the bell");
         if (dampener_delay != 0) {
             digitalWrite(act_pin, HIGH);
         }
-        // reset the last bell activity timer
-        last_action = 0;
-        // change bell state to reflect status of dampener
-        state = BELL_STRIKING;
+        last_action = 0;       // reset the last bell activity timer
+        state = BELL_STRIKING; // change bell state to reflect status of dampener
         break;
       }
       break;
     case BELL_STRIKING:
       // if the bell has been struck for long enough deactivate the striking solenoid
       if (last_action > velocity * on_time) {
-        Serial.println("stopping bell strike");
+        dprintln(PRINT_MECHANISM_DEBUG, "stopping bell strike");
         digitalWrite(act_pin, LOW);
-        // reset the last bell activity timer
-        last_action = 0;
-        // change bell state to reflect status of dampener
-        state = BELL_STRUCK;
+        last_action = 0;     // reset the last bell activity timer
+        state = BELL_STRUCK; // change bell state to reflect status of dampener
         break;
       }
       break;
     case BELL_STRUCK:
-      // if the bell has rings for long enough then allow the dampener to re-engague
+      // if the bell has rung for long enough then allow the dampener to re-engage
       if (last_action > note_length) {
-        Serial.println("reapplying the dampener");
+        dprintln(PRINT_MECHANISM_DEBUG, "reapplying the dampener");
         digitalWrite(damp_pin, LOW);
-        // reset the last bell activity timer
-        last_action = 0;
-        // change bell state to inactive
-        state = BELL_INACTIVE;
+        last_action = 0;       // reset the last bell activity timer
+        state = BELL_INACTIVE; // change bell state to inactive
         break;
       }
       break;
